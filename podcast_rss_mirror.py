@@ -34,8 +34,9 @@ import os
 import sys
 import time
 import argparse
+import re
 
-from datetime import datetime
+from datetime import datetime, timezone
 from subprocess import call
 from xml.etree import ElementTree as ET
 
@@ -166,8 +167,16 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
     datestring = pub_date.text
     
     # Parse the time string to a time-object and calculate the time delta.
-    date_obj = datetime.strptime(datestring, "%a, %d %b %Y %H:%M:%S %Z")
-    time_delta = datetime.now() - date_obj
+    date_obj=None
+    for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"):
+        try:
+            date_obj=datetime.strptime(datestring, fmt)
+        except ValueError:
+            pass
+    if not date_obj:
+      raise ValueError('no valid date format found')
+
+    time_delta = datetime.now(tz=timezone.utc) - date_obj
 
     # Get the enclosure node which contains the mp3-link.
     mp3link = child.findall( "enclosure" )[0]
