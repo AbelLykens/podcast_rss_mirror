@@ -34,7 +34,7 @@ import os
 import sys
 import time
 import argparse
-import re
+
 
 from datetime import datetime, timezone
 from subprocess import call
