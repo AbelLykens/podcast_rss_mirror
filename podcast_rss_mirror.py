@@ -80,7 +80,7 @@ def logmess( message, log_file_obj, lastlog = False ) :
 # but it works with my web host.
 def download_file( input, output ) :
 	# urllib.request.urlretrieve( input, output )
-	call( ["wget", input, "-O", output] )
+	call( ["wget", input, "-qO", output] )
 	
 
 # Main function.
