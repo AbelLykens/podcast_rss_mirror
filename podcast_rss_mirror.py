@@ -79,9 +79,7 @@ def logmess( message, log_file_obj, lastlog = False ) :
 # Function to download files. This may not be the best choice
 # but it works with my web host.
 def download_file( input, output ) :
-  # urllib.request.urlretrieve( input, output )
   call( ["wget", input, "-qO", output] )
-  
 
 # Main function.
 def create_pod_mirror( rss_href, podname, new_base_href ) :
@@ -92,13 +90,13 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
 
   now_time = time.time()
   script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-  log_path = os.path.join( script_dir, "podcast_mirror.log" )
+  log_path = os.path.join( os.getcwd() , "podcast_mirror.log" )
   
   log_file = open( log_path, "a" )
 
   logmess( "Start mirroring of " + rss_href, log_file )
   
-  local_pod_dir = os.path.join( script_dir, pod_name )
+  local_pod_dir = os.path.join( os.getcwd() , pod_name )
   local_pod_rss = os.path.join( local_pod_dir, pod_name + ".rss" )
   pod_last_download_path = os.path.join( local_pod_dir, "last_download.log" )
   
