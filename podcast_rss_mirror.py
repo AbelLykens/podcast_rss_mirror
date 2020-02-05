@@ -47,20 +47,18 @@ parser.add_argument( "-n", "--new_href", help="New base-href", required=True, de
 parser.add_argument( "--oldest_pod", help="How old files to download (in days). Default 365 days", type=int, required=False, default=None) 
 parser.add_argument( "--TEST", help="If this is used, only 10 files will be downloaded", required=False, action='store_true' ) 
 
-args = vars( parser.parse_args( ) ) 
+arguments = vars( parser.parse_args( ) ) 
 
-newhref = args["new_href"]
-pod_name = args["podcast_name"]
-pod_real_href = args["input_href"]
-test_mode = args["TEST"]
+arguments["input_href"] = arguments["input_href"]
+test_mode = arguments["TEST"]
 
 # Hardcoded time threshold for a little less than a day.
 time_threshold = 60*60*24-100
 
-if( args["oldest_pod"] is None ) :
+if( arguments["oldest_pod"] is None ) :
   oldest_pod = 365 #days
 else :
-  oldest_pod = args["oldest_pod"]
+  oldest_pod = arguments["oldest_pod"]
 
 # Simple loggin function
 def logmess( message, log_file_obj, lastlog = False ) :
@@ -89,15 +87,14 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
   delete_list = []
 
   now_time = time.time()
-  script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
   log_path = os.path.join( os.getcwd() , "podcast_mirror.log" )
   
   log_file = open( log_path, "a" )
 
-  logmess( "Start mirroring of " + rss_href, log_file )
+  logmess( "Start mirroring of " + rss_href , log_file )
   
-  local_pod_dir = os.path.join( os.getcwd() , pod_name )
-  local_pod_rss = os.path.join( local_pod_dir, pod_name + ".rss" )
+  local_pod_dir = os.path.join( os.getcwd() , arguments["podcast_name"] )
+  local_pod_rss = os.path.join( local_pod_dir, arguments["podcast_name"] + ".rss" )
   pod_last_download_path = os.path.join( local_pod_dir, "last_download.log" )
   
   # Check if the podcast-folder exists. If not, create it.
@@ -123,7 +120,7 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
       return 0
   
   # create the path to the downloaded temporary RSS-file.
-  tmp_podcast_rss = os.path.join( script_dir, pod_name + "_rss.tmp" )
+  tmp_podcast_rss = os.path.join( os.getcwd(), arguments["podcast_name"] + "_rss.tmp" )
   
   # Register the namespaces so the resulting XML-file is correct ...
   ET.register_namespace("itunes", "http://www.itunes.com/dtds/podcast-1.0.dtd" )
@@ -132,7 +129,7 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
   
   # Download the real RSS to the temporary path. Parse it using
   # ElementTree and remove the temporary file.
-  download_file( pod_real_href, tmp_podcast_rss )
+  download_file( arguments["input_href"], tmp_podcast_rss )
   rss_tree = ET.parse( tmp_podcast_rss )
   os.remove( tmp_podcast_rss )
 
@@ -185,7 +182,7 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
       continue
 
     # Create the new web address and the os path for the mp3-files.
-    newlink = os.path.join( newhref, pod_name, link_basename )
+    newlink = os.path.join( arguments["new_href"], arguments["podcast_name"], link_basename )
     local_path = os.path.join( local_pod_dir, link_basename )
     
     # Update the mp3-parameter to the new web address.
@@ -222,4 +219,4 @@ def create_pod_mirror( rss_href, podname, new_base_href ) :
 
 
 # MAIN ENTRY  
-create_pod_mirror( pod_real_href, pod_name, newhref )
+create_pod_mirror( arguments["input_href"], arguments["podcast_name"], arguments["new_href"]  )
