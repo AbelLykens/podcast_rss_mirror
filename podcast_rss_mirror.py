@@ -25,6 +25,7 @@ import os
 import sys
 import argparse
 import configparser
+import hashlib
 
 from datetime import datetime, timezone, timedelta
 from subprocess import call
@@ -61,6 +62,7 @@ def create_pod_mirror( rss_href, podcast_name, new_base_href, oldest_download_da
   
   local_pod_dir = os.path.join( base_directory_save , podcast_name )
   local_pod_rss = os.path.join( base_directory_save , podcast_name + ".rss" )
+  tmp_podcast_rss = os.path.join( local_pod_dir,podcast_name+".orig")
   
   # Check if the podcast-folder exists. If not, create it.
   if( not os.path.exists( local_pod_dir ) ) :
@@ -83,10 +85,12 @@ def create_pod_mirror( rss_href, podcast_name, new_base_href, oldest_download_da
   ET.register_namespace("sr", "http://www.sverigesradio.se/podrss" )
   
   # Download the real RSS to the temporary path. Parse it using ElementTree
-  tmp_podcast_rss = local_pod_rss+".orig"
   download_file( rss_href, tmp_podcast_rss )
+  if os.stat(tmp_podcast_rss).st_size == 0:
+    os.unlink(tmp_podcast_rss)
+    logger('Empty podcast!')
+    return 0
   rss_tree = ET.parse( tmp_podcast_rss )
-  os.unlink(tmp_podcast_rss)
 
   root_elem = rss_tree.getroot()
   data_node = root_elem.findall( 'channel' )
@@ -113,11 +117,13 @@ def create_pod_mirror( rss_href, podcast_name, new_base_href, oldest_download_da
     # Parse the time string to a time-object and calculate the time delta.
     date_obj=None
     for fmt in ("%a, %d %b %Y %H:%M:%S %Z", "%a, %d %b %Y %H:%M:%S %z"):
-        try:
-            date_obj=datetime.strptime(datestring, fmt)
-        except ValueError:
-            pass
+      try:
+        date_obj=datetime.strptime(datestring, fmt)
+      except ValueError:
+        pass
     if not date_obj:
+      print("FATAL Date fail: "+datestring)
+      sys.exit(1)
       raise ValueError('no valid date format found')
 
     # Get the enclosure node which contains the mp3-link.
@@ -125,17 +131,24 @@ def create_pod_mirror( rss_href, podcast_name, new_base_href, oldest_download_da
     oldlink = mp3link.get( "url" )
     
     # Get the filename for the mp3-file (used for rewriting the links in the feed).
-    link_basename = os.path.basename( oldlink )
+    link_basename = date_obj.strftime("%Y%m%d-%H%M")+hashlib.md5(oldlink.encode()).hexdigest()+".mp3"
     
     # If the time delta is too large, add this episode to the remove-list.
-    time_delta = datetime.now(tz=timezone.utc) - date_obj
+    try:
+      time_delta = datetime.now(tz=date_obj.tzinfo) - date_obj
+    except TypeError:
+      print("ERROR")
+      print(date_obj)
+      sys.exit(1)
+      return 0
+
     if( time_delta.days > int(oldest_download_days) ):
       logger("Will not remove too old ep")
       delete_list.append( child )
       continue
 
     # Create the new web address and the os path for the mp3-files.
-    newlink = os.path.join( rss_href, podcast_name, link_basename )
+    newlink = os.path.join( new_base_href, podcast_name, link_basename )
     local_path = os.path.join( local_pod_dir, link_basename )
     
     # Update the mp3-parameter to the new web address.
